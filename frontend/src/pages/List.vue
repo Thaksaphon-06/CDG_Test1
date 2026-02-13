@@ -20,6 +20,19 @@ const fetchProjects = async () => {
   }
 }
 
+const deleteProject = async (id) => {
+if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้?')) return
+
+  try {
+    await axios.delete(`http://localhost:5000/projects/${id}`)
+    projects.value = projects.value.filter(item => item.id !== id)
+    console.log(`ลบ ID: ${id} เรียบร้อยแล้ว`)
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการลบข้อมูล:', error)
+    alert('ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง')
+  }
+}
+
 onMounted(() => {
   fetchProjects()
 })
@@ -58,12 +71,21 @@ onMounted(() => {
               <v-divider class="mx-4"></v-divider>
               
               <v-card-actions>
-                <span class="text-caption text-grey-lighten-1 ml-2">
-                  ID: #{{ item.id }}
-                </span>
                 <v-spacer></v-spacer>
-                <v-btn variant="text" color="error" icon="mdi-pencil-outline" size="small"></v-btn>
-                <v-btn variant="text" color="error" icon="mdi-delete-outline" size="small"></v-btn>
+                <v-btn 
+                  variant="text"  
+                  color="error" 
+                  icon="mdi-pencil-outline" 
+                  size="small"
+                  @click="goToEdit(item.id)" 
+                ></v-btn>
+                <v-btn 
+                  variant="text" 
+                  color="error" 
+                  icon="mdi-delete-outline" 
+                  size="small"
+                  @click="deleteProject(item.id)" 
+                ></v-btn> 
               </v-card-actions>
             </v-card>
           </v-col>
