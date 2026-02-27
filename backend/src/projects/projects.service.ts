@@ -39,7 +39,7 @@ export class ProjectsService {
 
   // อัปเดตข้อมูล
   async update(id: number, updateProjectDto: UpdateProjectDto) {
-    const project = await this.findOne(id); // เช็คก่อนว่ามีไหม
+    const project = await this.findOne(id); 
     const updatedProject = Object.assign(project, updateProjectDto);
     return await this.projectsRepository.save(updatedProject);
   }

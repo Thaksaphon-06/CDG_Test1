@@ -20,7 +20,7 @@ import { Project } from './projects/entities/project.entity';
     }),
     ProjectsModule,
   ],
-  // controllers: [AppController],
-  // providers: [AppService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule { }
