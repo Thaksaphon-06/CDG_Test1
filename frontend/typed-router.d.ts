@@ -19,9 +19,11 @@ declare module 'vue-router/auto-routes' {
    */
   export interface RouteNamedMap {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
-    '/calendar': RouteRecordInfo<'/calendar', '/calendar', Record<never, never>, Record<never, never>>,
     '/Create': RouteRecordInfo<'/Create', '/Create', Record<never, never>, Record<never, never>>,
     '/List': RouteRecordInfo<'/List', '/List', Record<never, never>, Record<never, never>>,
+    '/ProjectByTask': RouteRecordInfo<'/ProjectByTask', '/ProjectByTask', Record<never, never>, Record<never, never>>,
+    '/TeamByTask': RouteRecordInfo<'/TeamByTask', '/TeamByTask', Record<never, never>, Record<never, never>>,
+    '/TeamCapacity': RouteRecordInfo<'/TeamCapacity', '/TeamCapacity', Record<never, never>, Record<never, never>>,
   }
 
   /**
@@ -39,16 +41,24 @@ declare module 'vue-router/auto-routes' {
       routes: '/'
       views: never
     }
-    'src/pages/calendar.vue': {
-      routes: '/calendar'
-      views: never
-    }
     'src/pages/Create.vue': {
       routes: '/Create'
       views: never
     }
     'src/pages/List.vue': {
       routes: '/List'
+      views: never
+    }
+    'src/pages/ProjectByTask.vue': {
+      routes: '/ProjectByTask'
+      views: never
+    }
+    'src/pages/TeamByTask.vue': {
+      routes: '/TeamByTask'
+      views: never
+    }
+    'src/pages/TeamCapacity.vue': {
+      routes: '/TeamCapacity'
       views: never
     }
   }

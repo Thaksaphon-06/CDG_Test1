@@ -39,9 +39,21 @@
 
                     <v-list-item 
             prepend-icon="mdi-calendar-month-outline" 
-            title="Calendar" 
-            value="calendar"
-            @click="navigateTo('/calendar')"
+            title="ProjectByTask" 
+            value="ProjectByTask"
+            @click="navigateTo('/projectbytask')"
+          ></v-list-item>
+          <v-list-item 
+            prepend-icon="mdi-calendar-month-outline" 
+            title="TeamByTask" 
+            value="teambytask"
+            @click="navigateTo('/teambytask')"
+          ></v-list-item>
+          <v-list-item 
+            prepend-icon="mdi-calendar-month-outline" 
+            title="TeamCapacity" 
+            value="teamcapacity"
+            @click="navigateTo('/teamcapacity')"
           ></v-list-item>
         </v-list>
       </v-navigation-drawer>
