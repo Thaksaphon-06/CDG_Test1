@@ -1,59 +1,64 @@
 <template>
     <default-layout>
         <v-container fluid>
-            <h2 class="mb-4">Resource Capacity Planning</h2>
+            <div class="d-flex align-center mb-4">
+                <h2 class="mb-0">Resource Capacity Planning</h2>
+                <v-spacer></v-spacer>
+                <v-btn-toggle v-model="viewMode" divided variant="outlined" color="primary" mandatory>
+                    <v-btn value="month">Month</v-btn>
+                    <v-btn value="week">Week</v-btn>
+                    <v-btn value="day">Day</v-btn>
+                </v-btn-toggle>
+            </div>
 
             <v-row class="mb-2">
                 <v-col cols="12">
                     <v-alert density="compact" type="info" variant="tonal" border="start">
-                        <strong>Planning Rule:</strong> Max 1.0 Man-day (8h) per person/day.
-                        Current View: <strong>
-                            {{ startDate?.toLocaleDateString() }} - {{ endDate?.toLocaleDateString() }}
-                        </strong>
+                        <strong>Rule:</strong> Max 8h per person/day.
+                        View: <strong>{{ displayRangeText }}</strong>
                     </v-alert>
                 </v-col>
             </v-row>
 
             <v-card elevation="2" border>
                 <div class="calendar-header pa-4 d-flex align-center bg-grey-lighten-4">
-                    <v-btn variant="text" icon="mdi-chevron-left" @click="changeWeek(-7)"></v-btn>
+                    <v-btn variant="text" icon="mdi-chevron-left" @click="navigate(-1)"></v-btn>
                     <v-spacer></v-spacer>
-                    <h3 class="text-primary">{{ currentMonthYear }}</h3>
+                    <h3 class="text-primary">{{ currentLabel }}</h3>
                     <v-spacer></v-spacer>
-                    <v-btn variant="text" icon="mdi-chevron-right" @click="changeWeek(7)"></v-btn>
+                    <v-btn variant="text" icon="mdi-chevron-right" @click="navigate(1)"></v-btn>
                 </div>
 
-                <v-table class="schedule-table" hover>
+                <v-table class="schedule-table" hover fixed-header>
                     <thead>
                         <tr>
-                            <th class="bg-grey-lighten-3" style="width: 200px">Team Member</th>
-                            <th v-for="date in weekDates" :key="date" class="text-center bg-grey-lighten-3">
-                                {{ formatDate(date) }}
+                            <th class="bg-grey-lighten-3" style="min-width: 180px">Team Member</th>
+                            <th v-for="col in tableColumns" :key="col.id"
+                                class="text-center bg-grey-lighten-3 border-start">
+                                <div class="text-caption font-weight-bold">{{ col.title }}</div>
+                                <div class="text-overline" v-if="col.subtitle">{{ col.subtitle }}</div>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="user in resources" :key="user.id">
-                            <td class="font-weight-bold border-end">
+                            <td class="font-weight-bold border-end bg-white">
                                 <v-avatar size="24" color="primary" class="mr-2 text-white text-caption">
                                     {{ user.name[0] }}
                                 </v-avatar>
                                 {{ user.name }}
                             </td>
 
-                            <td v-for="date in weekDates" :key="date" class="pa-1 border text-center"
-                                style="height: 80px; width: 150px;">
-                                <div v-if="getTask(user.id, date)" class="task-slot pa-2 rounded text-caption"
-                                    :class="getTaskColor(getTask(user.id, date).md)">
-                                    <div class="font-weight-bold">{{ getTask(user.id, date).title }}</div>
-                                    <v-chip size="x-small" density="compact" variant="flat" class="mt-1">
-                                        {{ getTask(user.id, date).md }} MD
-                                    </v-chip>
+                            <td v-for="col in tableColumns" :key="col.id"
+                                class="pa-1 border-start text-center cell-slot">
+                                <div v-if="getTaskAt(user.id, col.id)" class="task-slot pa-1 rounded"
+                                    :class="getTaskColor(getTaskAt(user.id, col.id).md || 0.5)">
+                                    <div class="task-title">{{ getTaskAt(user.id, col.id).title }}</div>
+                                    <div class="text-xxs" v-if="viewMode !== 'day'">
+                                        {{ getTaskAt(user.id, col.id).md }} MD
+                                    </div>
                                 </div>
-
-                                <div v-else class="text-caption text-grey-lighten-1 mt-2">
-                                    -- Available --
-                                </div>
+                                <div v-else class="empty-slot">--</div>
                             </td>
                         </tr>
                     </tbody>
@@ -65,65 +70,100 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import DefaultLayout from '@/components/DefaultLayout.vue';
 
-// ช่วงวันที่ Default เป็นสัปดาห์ปัจจุบัน
-const startDate = ref(new Date());
+const viewMode = ref('week'); // 'month', 'week', 'day'
+const referenceDate = ref(new Date());
 
-const weekDates = computed(() => {
-    return Array.from({ length: 5 }, (_, i) => {
-        const d = new Date(startDate.value);
-        d.setDate(d.getDate() + i);
-        return d.toISOString().split('T')[0];
-    });
+// คำนวณ Columns ตาม Mode
+const tableColumns = computed(() => {
+    const cols = [];
+    const curr = new Date(referenceDate.value);
+
+    if (viewMode.value === 'day') {
+
+        for (let i = 8; i <= 17; i++) {
+            cols.push({
+                id: `${curr.toISOString().split('T')[0]}_H${i}`,
+                title: `${i}:00`,
+                subtitle: i < 12 ? 'AM' : 'PM',
+                rawDate: curr.toISOString().split('T')[0],
+                hour: i
+            });
+        }
+    } else if (viewMode.value === 'week') {
+
+        const startOfWeek = new Date(curr.setDate(curr.getDate() - curr.getDay() + 1));
+        for (let i = 0; i < 5; i++) {
+            const d = new Date(startOfWeek);
+            d.setDate(d.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            cols.push({
+                id: dateStr,
+                title: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                subtitle: d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+                rawDate: dateStr
+            });
+        }
+    } else {
+
+        const year = curr.getFullYear();
+        const month = curr.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const d = new Date(year, month, i);
+            if (d.getDay() !== 0 && d.getDay() !== 6) { // เว้นเสาร์-อาทิตย์
+                const dateStr = d.toISOString().split('T')[0];
+                cols.push({
+                    id: dateStr,
+                    title: i.toString(),
+                    subtitle: d.toLocaleDateString('en-US', { weekday: 'narrow' }),
+                    rawDate: dateStr
+                });
+            }
+        }
+    }
+    return cols;
 });
 
-const currentMonthYear = computed(() => {
-    return startDate.value.toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-    }) ?? 'Select Date'
+// Navigation Logic
+const navigate = (step) => {
+    const d = new Date(referenceDate.value);
+    if (viewMode.value === 'day') d.setDate(d.getDate() + step);
+    else if (viewMode.value === 'week') d.setDate(d.getDate() + (step * 7));
+    else d.setMonth(d.getMonth() + step);
+    referenceDate.value = d;
+};
+
+const currentLabel = computed(() => {
+    const opt = { month: 'long', year: 'numeric' };
+    if (viewMode.value === 'day') opt.day = 'numeric';
+    return referenceDate.value.toLocaleDateString('en-US', opt);
 });
 
-// ข้อมูล Resources 
+// Data & Matching Logic
 const resources = [
     { id: 'u1', name: 'Touchhh' },
-    { id: 'u2', name: 'Developer B' },
-    { id: 'u3', name: 'Designer C' },
+    { id: 'u2', name: 'Developer B' }
 ];
-
-// ข้อมูล Tasks (Mockup ข้อมูลจากระบบ ERP)
+ 
 const tasks = ref([
-    { id: 101, userId: 'u1', date: '2026-03-02', title: 'Setup NestJS', md: 1.0 },
-    { id: 102, userId: 'u1', date: '2026-03-03', title: 'Database Schema', md: 0.5 },
-    { id: 103, userId: 'u2', date: '2026-03-04', title: 'Vue Integration', md: 0.3 },
+    { id: 1, userId: 'u1', date: '2026-03-02', title: 'ERP API', md: 1.0, hour: 9 },
+    { id: 2, userId: 'u1', date: '2026-03-02', title: 'Meeting', md: 0.2, hour: 14 },
+    { id: 3, userId: 'u2', date: '2026-03-04', title: 'UI Fix', md: 0.5, hour: 10 }
 ]);
 
-// Logic Functions
-const getTask = (userId, date) => {
-    return tasks.value.find(t => t.userId === userId && t.date === date);
+const getTaskAt = (userId, colId) => {
+    if (viewMode.value === 'day') {
+        const [date, hourStr] = colId.split('_H');
+        return tasks.value.find(t => t.userId === userId && t.date === date && t.hour === parseInt(hourStr));
+    } else {
+        return tasks.value.find(t => t.userId === userId && t.date === colId);
+    }
 };
 
 const getTaskColor = (md) => {
-    if (md > 1.0) return 'bg-red-lighten-4 border-red'; // Overload
-    if (md < 1.0) return 'bg-green-lighten-4 border-green';
-    return 'bg-blue-lighten-4 border-blue';
-};
-
-const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
-};
-
-const changeWeek = (days) => {
-    if (!startDate.value) return;
-
-    const newDate = new Date(startDate.value);
-    newDate.setDate(newDate.getDate() + days);
-
-    if (!isNaN(newDate.getTime())) {
-        startDate.value = newDate;
-    }
+    if (md >= 1.0) return 'bg-blue-lighten-4 border-blue';
+    return 'bg-green-lighten-4 border-green';
 };
 </script>
 
@@ -132,31 +172,43 @@ const changeWeek = (days) => {
     border: 1px solid #e0e0e0;
 }
 
+.cell-slot {
+    height: 70px;
+    min-width: 60px;
+    vertical-align: middle;
+}
+
 .task-slot {
-    transition: transform 0.2s;
-    border-left: 4px solid #1976d2;
-    min-height: 60px;
+    font-size: 0.7rem;
+    border-left: 3px solid #1976d2;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    overflow: hidden;
 }
 
-.task-slot:hover {
-    transform: scale(1.02);
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.task-title {
+    font-weight: bold;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
-.border-red {
-    border-left-color: #D32F2F !important;
+.empty-slot {
+    color: #bdbdbd;
+    font-size: 0.75rem;
+}
+
+.text-xxs {
+    font-size: 0.6rem;
 }
 
 .border-green {
-    border-left-color: #388E3C !important;
+    border-left-color: #4CAF50 !important;
 }
 
 .border-blue {
-    border-left-color: #1976D2 !important;
+    border-left-color: #2196F3 !important;
 }
 </style>
